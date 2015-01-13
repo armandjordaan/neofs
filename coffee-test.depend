@@ -1,0 +1,127 @@
+# depslib dependency file v1.0
+1416152820 source:c:\users\armand\onedrive\projects\general\coffee-test\cfs-coffee.c
+	<limits.h>
+	<string.h>
+	<stdio.h>
+	"cfs.h"
+	"cfs-coffee-arch.h"
+	"cfs-coffee.h"
+
+1416058689 c:\users\armand\onedrive\projects\general\coffee-test\cfs.h
+	"contiki.h"
+
+1416059323 c:\users\armand\onedrive\projects\general\coffee-test\contiki.h
+	"contiki-version.h"
+	"contiki-conf.h"
+	"contiki-default-conf.h"
+	"sys/process.h"
+	"sys/autostart.h"
+	"sys/timer.h"
+	"sys/ctimer.h"
+	"sys/etimer.h"
+	"sys/rtimer.h"
+	"sys/pt.h"
+	"sys/procinit.h"
+	"sys/loader.h"
+	"sys/clock.h"
+	"sys/energest.h"
+
+1416093943 c:\users\armand\onedrive\projects\general\coffee-test\cfs-coffee-arch.h
+	<stdint.h>
+	<stdlib.h>
+
+1383689722 c:\users\armand\onedrive\projects\general\coffee-test\cfs-coffee.h
+	"cfs.h"
+
+1416157978 source:c:\users\armand\onedrive\projects\general\coffee-test\main.c
+	<stdio.h>
+	<stdlib.h>
+	<stdint.h>
+	<string.h>
+	"cfs.h"
+	"fs.h"
+
+1416157806 source:c:\users\armand\onedrive\projects\general\coffee-test\fs.c
+	<stdint.h>
+	<string.h>
+	<stdio.h>
+	"fs.h"
+
+1416157990 c:\users\armand\onedrive\projects\general\coffee-test\fs.h
+	"fs-arch.h"
+
+1416154044 c:\users\armand\onedrive\projects\general\coffee-test\fs-arch.h
+	<stdint.h>
+	<stdlib.h>
+
+1416659421 source:c:\users\armand\owncloud\projects\general\coffee-test\cfs-coffee.c
+	<limits.h>
+	<string.h>
+	<stdio.h>
+	"cfs.h"
+	"cfs-coffee-arch.h"
+	"cfs-coffee.h"
+
+1416058689 c:\users\armand\owncloud\projects\general\coffee-test\cfs.h
+	"contiki.h"
+
+1416059323 c:\users\armand\owncloud\projects\general\coffee-test\contiki.h
+	"contiki-version.h"
+	"contiki-conf.h"
+	"contiki-default-conf.h"
+	"sys/process.h"
+	"sys/autostart.h"
+	"sys/timer.h"
+	"sys/ctimer.h"
+	"sys/etimer.h"
+	"sys/rtimer.h"
+	"sys/pt.h"
+	"sys/procinit.h"
+	"sys/loader.h"
+	"sys/clock.h"
+	"sys/energest.h"
+
+1416659113 c:\users\armand\owncloud\projects\general\coffee-test\cfs-coffee-arch.h
+	<stdint.h>
+	<stdlib.h>
+
+1383689722 c:\users\armand\owncloud\projects\general\coffee-test\cfs-coffee.h
+	"cfs.h"
+
+1421127558 source:c:\users\armand\owncloud\projects\general\coffee-test\main.c
+	<stdio.h>
+	<stdlib.h>
+	<stdint.h>
+	<string.h>
+	"neofs.h"
+
+1416158767 c:\users\armand\owncloud\projects\general\coffee-test\fs.h
+	"fs-arch.h"
+
+1416154044 c:\users\armand\owncloud\projects\general\coffee-test\fs-arch.h
+	<stdint.h>
+	<stdlib.h>
+
+1416658014 source:c:\users\armand\owncloud\projects\general\coffee-test\fs.c
+	<stdint.h>
+	<string.h>
+	<stdio.h>
+	"fs.h"
+
+1421091447 source:c:\users\armand\owncloud\projects\general\coffee-test\mfs.c
+	"mfs.h"
+	<stdint.h>
+	<string.h>
+	<stddef.h>
+	<stdio.h>
+
+1421081655 c:\users\armand\owncloud\projects\general\coffee-test\mfs.h
+	<stdint.h>
+	"cassert.h"
+
+1409563970 c:\users\armand\owncloud\projects\general\coffee-test\cassert.h
+
+1421127546 c:\users\armand\owncloud\projects\general\coffee-test\neofs.h
+	<stdint.h>
+	"cassert.h"
+
