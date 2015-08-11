@@ -2,11 +2,8 @@
 #define NEOFS_H_INCLUDED
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "cassert.h"
-
-typedef uint8_t bool;
-#define true  (1)
-#define false (0)
 
 #define NEOFS_SECTOR_COUNT           (512)
 #define NEOFS_SECTOR_SIZE            (4096)

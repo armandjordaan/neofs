@@ -1,3 +1,8 @@
+/*
+
+Neo systems generic SPI Flash file system
+
+*/
 #include "neofs.h"
 #include <stdint.h>
 #include <string.h>
@@ -49,7 +54,7 @@ NEOFS_FILEDESCRIPTOR NEOFS_FileDescriptor[NEOFS_MAX_NUMBER_OF_OPEN_FILES];
 
 //uint8_t NEOFS_FlashBuffer[NEOFS_SECTOR_COUNT*NEOFS_SECTOR_SIZE];
 
-void DebugPrintBuffer(void* buf, int size, uint32_t u32Offset)
+static void DebugPrintBuffer(void* buf, int size, uint32_t u32Offset)
 {
 #if DEBUG
     uint8_t* p = buf;

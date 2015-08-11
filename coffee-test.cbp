@@ -41,6 +41,10 @@
 		<Unit filename="main.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="neocfs.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="neocfs.h" />
 		<Unit filename="neofs.c">
 			<Option compilerVar="CC" />
 		</Unit>

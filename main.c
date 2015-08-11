@@ -3,8 +3,13 @@
 #include <stdint.h>
 #include <string.h>
 #include "neofs.h"
+#include "neocfs.h"
 
 uint8_t FlashBuffer[4096*2048];
+
+// ****************************************************************************
+// NEOFS debugging
+// ****************************************************************************
 extern bool           NEOFS_Debug;
 
 #define MAX_TEST_FILE_SIZE (1024*1024)
@@ -65,7 +70,35 @@ char noun[20][30] = {
     "coffee"
 };
 
+// ****************************************************************************
+// NEOCFS debugging
+// ****************************************************************************
+//NEOCFS_DECLARE_CIRC_FILE("Log1",30, 0x00000000,0x0000FFFF);
+//NEOCFS_DECLARE_CIRC_FILE("Log2",62, 0x00010000,0x00017FFF);
+//NEOCFS_DECLARE_CIRC_FILE("Log3",126,0x00018000,0x0001FFFF);
+NEOCFS_FILE_DESCRIPTOR_ST neocfs_files[3] = {
+    { "Log1",30, 0x00000000,0x0000FFFF },
+    { "Log2",62, 0x00010000,0x00017FFF },
+    { "Log3",126,0x00018000,0x0001FFFF }
+};
+
+uint8_t neocfs_test_data[1024];
+
+NEOCFS_FILE_DESCRIPTOR_ST* __start_neocfs_file_descriptors = neocfs_files;
+NEOCFS_FILE_DESCRIPTOR_ST* __stop_neocfs_file_descriptors = neocfs_files + 3;
+
 void randomize_file_data(void);
+
+void randomize_neocfs_test_data(void)
+{
+    int i,r;
+
+    for(i=0; i<MAX_TEST_FILE_SIZE; i++)
+    {
+        r = rand();
+        outfile[i] = (uint8_t)r;
+    }
+}
 
 void dumpffs(char* name)
 {
@@ -155,7 +188,11 @@ int test_mfs(void)
         printf("Write file %s\n",filename[i]);
         write_file(i);
     }
-    dumpffs("mfs_written.ffs");
+    dumpffs("mfs_written.ffs");/*
+
+Neo systems generic SPI Flash file system
+
+*/
     for(i=0; i<MAX_NUM_TEST_FILES; i++)
     {
         printf("Verify File: %s ",filename[i]);
@@ -310,10 +347,34 @@ void init(void)
     printf("Total files len = %d\n",totalsize);
 }
 
+int test_neocfs(void)
+{
+    int res;
+
+    printf("testing neocfs ....\n");
+    NEOCFS_Format();
+    NEOCFS_Init();
+    NEOCFS_Dir();
+
+    res = NEOCFS_OpenByDescriptor(&neocfs_files[0]);
+    if (res != NEOCFS_RESULT_CODE_SUCCESS)
+    {
+        printf("Open failed.");
+    }
+    else
+    {
+        printf("File opened.");
+    }
+
+    return 0;
+}
+
 int main()
 {
-    init();
-    test_mfs();
+    //init();
+    //test_mfs();
+
+    test_neocfs();
 
     return 0;
 }
