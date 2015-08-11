@@ -1,11 +1,3 @@
-/******************************************************************************
- * Copyright : (c) Altech Netstar (Pty) Limited, 2014
- * All rights reserved.   No part of this publication may be reproduced, stored
- * in  a retrieval system,  or  transmitted  in  any  form  or  by  any  means,
- * electronic, mechanical, photocopying, recording  or otherwise,  without  the
- * prior written permission of Altech Netstar (Pty) Limited.
- * Netstar Template Number: TEMPLATE-0001
- *****************************************************************************/
 
 /**************************************************************************//**
  * \file    cassert.h
