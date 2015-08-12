@@ -56,14 +56,32 @@ static void DebugPrintBuffer(void* buf, int size, uint32_t u32Offset)
 #endif
 }
 
+/** \brief Diskread implementation
+ *
+ * \param void* Buf : pointer to buffer where read data will be stored
+ * \param int size : number of bytes to read
+ * \param uint32_t u32Offset : offset of where to read, relative to start of disk
+ * \return Number of bytes read (or -1 if failed)
+ *
+ * \note  This is implementation specific. Implement your SPI device's read routine here
+ */
 int NEOCFS_Diskread(void* Buf, int size, uint32_t u32Offset)
 {
     DPRINTF("disk read %d, %u (0x%08X)\n",size,u32Offset,u32Offset);
     memcpy(Buf,FlashBuffer+u32Offset,size);
     DebugPrintBuffer(Buf,size,u32Offset);
-    return 0;
+    return size;
 }
 
+/** \brief Diskwrite implementation
+ *
+ * \param void* Buf : pointer to buffer of data to be written
+ * \param int size : number of bytes to write
+ * \param uint32_t u32Offset : offset of where to write, relative to start of disk
+ * \return Number of bytes written (or -1 if failed)
+ *
+ * \note  This is implementation specific. Implement your SPI device's write routine here
+ */
 int NEOCFS_Diskwrite(void* Buf, int size, uint32_t u32Offset)
 {
     uint8_t* p = Buf;
@@ -78,31 +96,68 @@ int NEOCFS_Diskwrite(void* Buf, int size, uint32_t u32Offset)
     return 0;
 }
 
+/** \brief Diskerase implementation
+ *
+ * \param uint16_t u16Sector : sector to be erased
+ * \return 0 on success (or -1 if failed)
+ *
+ * \note  This is implementation specific. Implement your SPI device's erase routine here
+ */
 int NEOCFS_Diskerase(uint16_t u16Sector)
 {
+    DPRINTF("Erase at sector %d\n",u16Sector);
     memset(FlashBuffer+(u16Sector * NEOCFS_SECTOR_SIZE),0xFF,NEOCFS_SECTOR_SIZE);
     return 0;
 }
 
+
+/** \brief NEOCFS_Format
+ *
+ * \param void
+ * \return int (0 = success, any other means failure)
+ *
+ * \note  format the disk, ie for SPI flash, set entire allocated area to 1's
+ */
 int NEOCFS_Format(void)
 {
-    int i;
+    int i,t;
 
-    for(i=0; i<NEOCFS_SECTOR_COUNT; i++)
+    for(i=NEOCFS_START_SECTOR; i<(NEOCFS_START_SECTOR + NEOCFS_SECTOR_COUNT); i++)
     {
-        NEOCFS_Diskerase(i);
+        DPRINTF("Erasing sector: %d of %d at sector %d\n",i-NEOCFS_START_SECTOR,NEOCFS_SECTOR_COUNT,i);
+        t = NEOCFS_Diskerase(i);
+        if (t != 0)
+        {
+            return t;
+        }
     }
     return 0;
 }
 
+/** \brief int isPowerOfTwo (uint32_t x)
+ *
+ * \param uint32_t x = value to check if it is a power of 2
+ * \return return 0 if not a power of 2, return 1 if a power of two
+ *
+ */
 static int isPowerOfTwo (uint32_t x)
 {
- while (((x % 2) == 0) && x > 1) /* While x is even and > 1 */
-   x /= 2;
- return (x == 1);
+    while (((x % 2) == 0) && x > 1) /* While x is even and > 1 */
+    {
+        x /= 2;
+    }
+    return (x == 1);
 }
 
-static uint32_t NextRecordAddress(NEOCFS_FILE_DESCRIPTOR_ST* fd,uint32_t u32Addr)
+/** \brief uint32_t NextRecordAddress(NEOCFS_FILE_DESCRIPTOR_ST* fd,uint32_t u32Addr)
+ *
+ * \param fd NEOCFS_FILE_DESCRIPTOR_ST* - pointer to file descriptor
+ * \param u32Addr uint32_t - current address
+ * \return uint32_t - address of next record
+ *
+ * \note  get the address of the next record for the file descriptor
+ */
+static uint32_t NextRecordAddress(NEOCFS_FILE_DESCRIPTOR_ST* fd, uint32_t u32Addr)
 {
     uint32_t u32Result = u32Addr + fd->u32RecordSize+2;
 
@@ -113,6 +168,13 @@ static uint32_t NextRecordAddress(NEOCFS_FILE_DESCRIPTOR_ST* fd,uint32_t u32Addr
     return u32Result;
 }
 
+/** \brief void NEOCFS_Init(void)
+ *
+ * \param void
+ * \return void
+ *
+ * \note  Initialise the file system
+ */
 void NEOCFS_Init(void)
 {
     NEOCFS_FILE_DESCRIPTOR_ST* i;
@@ -134,6 +196,13 @@ void NEOCFS_Init(void)
     NEOCFS_Initialised = true;
 }
 
+/** \brief bool CheckInitialised(void)
+ *
+ * \param void
+ * \return bool (true if initailised, false if not initialised)
+ *
+ * \note  Check file systems initialise status
+ */
 static bool CheckInitialised(void)
 {
     if (!NEOCFS_Initialised)
@@ -147,6 +216,13 @@ static bool CheckInitialised(void)
     }
 }
 
+/** \brief void NEOCFS_Dir(void)
+ *
+ * \param void
+ * \return void
+ *
+ * \note  List all files
+ */
 void NEOCFS_Dir(void)
 {
     NEOCFS_FILE_DESCRIPTOR_ST* i;
@@ -159,7 +235,15 @@ void NEOCFS_Dir(void)
     }
 }
 
-NEOCFS_FILE_DESCRIPTOR_ST* NEOCFS_OpenByName(char* filename)
+/** \brief NEOCFS_FILE_DESCRIPTOR_ST* NEOCFS_OpenByName(char* filename)
+ *
+ * \param filename char* - filename
+ * \return NEOCFS_FILE_DESCRIPTOR_ST* - returns pointer to the file descriptor
+ *
+ * \note Open a file by its name
+ * \note Returns NULL if file is not found
+ */
+NEOCFS_FILE_DESCRIPTOR_ST* NEOCFS_OpenByName(const char* filename)
 {
     NEOCFS_FILE_DESCRIPTOR_ST* i;
 
@@ -178,6 +262,13 @@ NEOCFS_FILE_DESCRIPTOR_ST* NEOCFS_OpenByName(char* filename)
     return NULL;
 }
 
+/** \brief void NEOCFS_FormatFile(NEOCFS_FILE_DESCRIPTOR_ST* fd)
+ *
+ * \param fd NEOCFS_FILE_DESCRIPTOR_ST*
+ * \return void
+ *
+ * \note  Formats teh filem by erasing all sectors
+ */
 void NEOCFS_FormatFile(NEOCFS_FILE_DESCRIPTOR_ST* fd)
 {
     uint32_t i;
@@ -188,6 +279,13 @@ void NEOCFS_FormatFile(NEOCFS_FILE_DESCRIPTOR_ST* fd)
     }
 }
 
+/** \brief uint32_t FindTail(NEOCFS_FILE_DESCRIPTOR_ST* fd)
+ *
+ * \param fd NEOCFS_FILE_DESCRIPTOR_ST* - pointer to file descriptor
+ * \return uint32_t - address of the tail
+ *
+ * \note Find the tail of the log
+ */
 static uint32_t FindTail(NEOCFS_FILE_DESCRIPTOR_ST* fd)
 {
     uint32_t i,j,n,m;
@@ -195,8 +293,8 @@ static uint32_t FindTail(NEOCFS_FILE_DESCRIPTOR_ST* fd)
     bool fAllFF = true;
 
     // find the Tail
-    // the tail is where a a FF end tag is followed by a non FF tag, followed by a non obsolete tag
-    n = ((fd->u32EndAddr - fd->u32StartAddr) / (fd->u32RecordSize+2))+1;
+    // the tail is where a FF end tag is followed by a non FF tag, followed by a non obsolete tag
+    n = ((fd->u32EndAddr - fd->u32StartAddr) / (fd->u32RecordSize+2))+5;
     i = fd->u32StartAddr;
 
     while(n)
@@ -205,12 +303,16 @@ static uint32_t FindTail(NEOCFS_FILE_DESCRIPTOR_ST* fd)
         j = NextRecordAddress(fd,i);
         NEOCFS_Diskread(&u8Temp2,sizeof(u8Temp2),j);
 
+        DPRINTF("A:%08X D:%02X, A:%08X D:%02X\n",i,u8Temp1,j,u8Temp2);
+
         if (u8Temp1 != 0xFF)
         {
             fAllFF = false;
         }
         if ((u8Temp1 == 0xFF) && (u8Temp2 != 0xFF))
         {
+            DPRINTF("Transition from FF to non FF\n");
+
             fAllFF = false;
 
             // data has started ....
@@ -223,6 +325,7 @@ static uint32_t FindTail(NEOCFS_FILE_DESCRIPTOR_ST* fd)
                 if ((u8Temp1 & ~NEOCFS_END_TAG_OBSOLETE) != 0)
                 {
                     // this one is not obsolete - so this is where the file starts!
+                    DPRINTF("Found tail at %08X\n",j);
                     return j;
                 }
                 m--;
@@ -246,6 +349,13 @@ static uint32_t FindTail(NEOCFS_FILE_DESCRIPTOR_ST* fd)
 
 }
 
+/** \brief uint32_t FindHead(NEOCFS_FILE_DESCRIPTOR_ST* fd)
+ *
+ * \param fd NEOCFS_FILE_DESCRIPTOR_ST* - pointer to filedescriptor
+ * \return uint32_t - offset of start of log
+ *
+ * \note  find the start of the log
+ */
 uint32_t FindHead(NEOCFS_FILE_DESCRIPTOR_ST* fd)
 {
     // find the place where data is followed by FF
@@ -255,6 +365,8 @@ uint32_t FindHead(NEOCFS_FILE_DESCRIPTOR_ST* fd)
 
     i = fd->u32Tail;
     m = ((fd->u32EndAddr - fd->u32StartAddr) / (fd->u32RecordSize+2)) + 1;
+
+    DPRINTF("Find head\n");
 
     while(m)
     {
@@ -270,6 +382,13 @@ uint32_t FindHead(NEOCFS_FILE_DESCRIPTOR_ST* fd)
     return NEOCFS_NOT_FOUND;
 }
 
+/** \brief int NEOCFS_OpenByDescriptor(NEOCFS_FILE_DESCRIPTOR_ST* fd)
+ *
+ * \param fd NEOCFS_FILE_DESCRIPTOR_ST* - pointer to file descriptor
+ * \return int - returns NEOCFS_RESULT_CODE_SUCCESS_xxxxx code
+ *
+ * \note Open a file by its descriptor
+ */
 int NEOCFS_OpenByDescriptor(NEOCFS_FILE_DESCRIPTOR_ST* fd)
 {
     DPRINTF("Opening %s",fd->cFilename);
@@ -288,21 +407,36 @@ int NEOCFS_OpenByDescriptor(NEOCFS_FILE_DESCRIPTOR_ST* fd)
     return NEOCFS_RESULT_CODE_SUCCESS;
 }
 
+/** \brief Close the file : void NEOCFS_CloseFile(NEOCFS_FILE_DESCRIPTOR_ST* fd)
+ *
+ * \param fd NEOCFS_FILE_DESCRIPTOR_ST* - pointer to file descriptor
+ * \return void
+ *
+ */
 void NEOCFS_CloseFile(NEOCFS_FILE_DESCRIPTOR_ST* fd)
 {
 
 }
 
+/** \brief static int GarbageCollect(NEOCFS_FILE_DESCRIPTOR_ST* fd)
+ *
+ * \param fd NEOCFS_FILE_DESCRIPTOR_ST*
+ * \return int
+ *
+ * \note Do garbage collection, ie see how much flash can be reclaimed for file writing
+ */
 static int GarbageCollect(NEOCFS_FILE_DESCRIPTOR_ST* fd)
 {
     uint8_t  u8Tag;
     uint32_t i,j;
     bool     fFreeSpaceFound;
 
+    DPRINTF("Garbage collection\n");
+
     for(j = fd->u32Head; j<(fd->u32Head + (2*NEOCFS_SECTOR_SIZE)); j++)
     {
         // first check if the file supports overwrite of oldest data ...
-        if (j & NEOCFS_FILE_FLAGS_OVERWRITE_OLDEST)
+        if (fd->u32Flags & NEOCFS_FILE_FLAGS_OVERWRITE_OLDEST)
         {
             // then its easy - we just wipe the sector
             if (NEOCFS_Diskerase(fd->u32Head / NEOCFS_SECTOR_SIZE) != 0)
@@ -339,6 +473,14 @@ static int GarbageCollect(NEOCFS_FILE_DESCRIPTOR_ST* fd)
     return NEOCFS_RESULT_CODE_SUCCESS;
 }
 
+/** \brief int NEOCFS_WriteRecord(NEOCFS_FILE_DESCRIPTOR_ST* fd, void* data)
+ *
+ * \param fd NEOCFS_FILE_DESCRIPTOR_ST* - pointer to file descriptor
+ * \param data void* - pointer to data record
+ * \return int - return a NEOCFS_RESULT_CODE_xxxxx code
+ *
+ * \note write a single record to the file
+ */
 int NEOCFS_WriteRecord(NEOCFS_FILE_DESCRIPTOR_ST* fd, void* data)
 {
     int result;
@@ -374,6 +516,14 @@ int NEOCFS_WriteRecord(NEOCFS_FILE_DESCRIPTOR_ST* fd, void* data)
     return NEOCFS_RESULT_CODE_SUCCESS;
 }
 
+/** \brief int NEOCFS_SeekFromTail(NEOCFS_FILE_DESCRIPTOR_ST* fd, uint32_t pos)
+ *
+ * \param fd NEOCFS_FILE_DESCRIPTOR_ST* - pointer to fiel descriptor
+ * \param pos uint32_t - position to seek to
+ * \return int - returns NEOCFS_RESULT_CODE_xxxxxx
+ *
+ * \note position file file pointer relative to the end of the file.
+ */
 int NEOCFS_SeekFromTail(NEOCFS_FILE_DESCRIPTOR_ST* fd, uint32_t pos)
 {
     uint32_t u32Addr = fd->u32Tail;
@@ -391,6 +541,14 @@ int NEOCFS_SeekFromTail(NEOCFS_FILE_DESCRIPTOR_ST* fd, uint32_t pos)
     return NEOCFS_RESULT_CODE_SUCCESS;
 }
 
+/** \brief int NEOCFS_ReadRecord(NEOCFS_FILE_DESCRIPTOR_ST* fd, void* data)
+ *
+ * \param fd NEOCFS_FILE_DESCRIPTOR_ST* - pointer to file descriptor
+ * \param data void* - pointer to where record will be stored
+ * \return int - returns code NEOCFS_RESULT_CODE_xxxxx
+ *
+ * \note File pointer is not advanced
+ */
 int NEOCFS_ReadRecord(NEOCFS_FILE_DESCRIPTOR_ST* fd, void* data)
 {
     if (NEOCFS_Diskread(data,fd->u32RecordSize,fd->u32CurReadPos+1) == 0)
@@ -403,6 +561,13 @@ int NEOCFS_ReadRecord(NEOCFS_FILE_DESCRIPTOR_ST* fd, void* data)
     }
 }
 
+/** \brief int NEOCFS_NextRecord(NEOCFS_FILE_DESCRIPTOR_ST* fd)
+ *
+ * \param fd NEOCFS_FILE_DESCRIPTOR_ST* - pointer to the file descriptor
+ * \return int - return code NEOCFS_RESULT_CODE_xxxxxx
+ *
+ * \note Advances the file pointer to the next record
+ */
 int NEOCFS_NextRecord(NEOCFS_FILE_DESCRIPTOR_ST* fd)
 {
     fd->u32CurReadPos += (fd->u32RecordSize+2);
@@ -414,15 +579,26 @@ int NEOCFS_NextRecord(NEOCFS_FILE_DESCRIPTOR_ST* fd)
     return NEOCFS_RESULT_CODE_SUCCESS;
 }
 
+/** \brief int NEOCFS_MarkObsolete(NEOCFS_FILE_DESCRIPTOR_ST* fd)
+ *
+ * \param fd NEOCFS_FILE_DESCRIPTOR_ST* - pointer to the file descriptor
+ * \return int - return NEOCFS_RESULT_CODE_xxxxx
+ *
+ * \note mark the record as obsolete
+ */
 int NEOCFS_MarkObsolete(NEOCFS_FILE_DESCRIPTOR_ST* fd)
 {
     uint8_t u8Tag;
 
-    if (fd->u32CurReadPos == fd->u32Head)
+    DPRINTF("fd->u32CurReadPos = %d, fd->u32Tail = %d\n",fd->u32CurReadPos,fd->u32Tail);
+    if (fd->u32CurReadPos == fd->u32Tail)
     {
-        NEOCFS_Diskread(&u8Tag,sizeof(u8Tag),fd->u32Head+fd->u32RecordSize+1);
+        //NEOCFS_Diskread(&u8Tag,sizeof(u8Tag),fd->u32Tail+fd->u32RecordSize+1);
+        NEOCFS_Diskread(&u8Tag,sizeof(u8Tag),fd->u32Tail);
         u8Tag &= NEOCFS_END_TAG_OBSOLETE;
-        NEOCFS_Diskwrite(&u8Tag,sizeof(u8Tag),fd->u32Head+fd->u32RecordSize+1);
+        //NEOCFS_Diskwrite(&u8Tag,sizeof(u8Tag),fd->u32Tail+fd->u32RecordSize+1);
+        NEOCFS_Diskwrite(&u8Tag,sizeof(u8Tag),fd->u32Tail);
+        fd->u32Tail += (fd->u32RecordSize + 2);
     }
     return NEOCFS_RESULT_CODE_SUCCESS;
 }

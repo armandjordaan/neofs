@@ -73,10 +73,11 @@ char noun[20][30] = {
 // ****************************************************************************
 // NEOCFS debugging
 // ****************************************************************************
+#define NUM_NEOCFS_FILES (3)
 //NEOCFS_DECLARE_CIRC_FILE("Log1",30, 0x00000000,0x0000FFFF);
 //NEOCFS_DECLARE_CIRC_FILE("Log2",62, 0x00010000,0x00017FFF);
 //NEOCFS_DECLARE_CIRC_FILE("Log3",126,0x00018000,0x0001FFFF);
-NEOCFS_FILE_DESCRIPTOR_ST neocfs_files[3] = {
+NEOCFS_FILE_DESCRIPTOR_ST neocfs_files[NUM_NEOCFS_FILES] = {
     { "Log1",30, 0x00000000,0x0000FFFF },
     { "Log2",62, 0x00010000,0x00017FFF },
     { "Log3",126,0x00018000,0x0001FFFF }
@@ -85,19 +86,24 @@ NEOCFS_FILE_DESCRIPTOR_ST neocfs_files[3] = {
 uint8_t neocfs_test_data[1024];
 
 NEOCFS_FILE_DESCRIPTOR_ST* __start_neocfs_file_descriptors = neocfs_files;
-NEOCFS_FILE_DESCRIPTOR_ST* __stop_neocfs_file_descriptors = neocfs_files + 3;
+NEOCFS_FILE_DESCRIPTOR_ST* __stop_neocfs_file_descriptors = neocfs_files + NUM_NEOCFS_FILES;
 
 void randomize_file_data(void);
 
-void randomize_neocfs_test_data(void)
+void randomize_neocfs_test_data(int file)
 {
     int i,r;
 
-    for(i=0; i<MAX_TEST_FILE_SIZE; i++)
+    for(i=0; i<sizeof(infile); i++)
     {
         r = rand();
-        outfile[i] = (uint8_t)r;
+        infile[i] = (uint8_t)r;
     }
+}
+
+void build_neocfs_test_files(int filenum)
+{
+    randomize_neocfs_test_data(neocfs_files[filenum].u32EndAddr - neocfs_files[filenum].u32StartAddr + 1);
 }
 
 void dumpffs(char* name)
@@ -349,32 +355,115 @@ void init(void)
 
 int test_neocfs(void)
 {
-    int res;
+    int res,i,len,currwr,currrd;
+    int wrlen, rdlen;
+
+    srand(0);
 
     printf("testing neocfs ....\n");
     NEOCFS_Format();
     NEOCFS_Init();
     NEOCFS_Dir();
 
-    res = NEOCFS_OpenByDescriptor(&neocfs_files[0]);
-    if (res != NEOCFS_RESULT_CODE_SUCCESS)
+    for(i=0; i<NUM_NEOCFS_FILES; i++)
     {
-        printf("Open failed.");
-    }
-    else
-    {
-        printf("File opened.");
+        randomize_neocfs_test_data(i);
+
+        len = (neocfs_files[i].u32EndAddr - neocfs_files[i].u32StartAddr + 1) / neocfs_files[i].u32RecordSize; // total number of records
+        currrd = 0;
+        currwr = 0;
+
+        while((currwr < len) || (currrd < len))
+        {
+            res = NEOCFS_OpenByDescriptor(&neocfs_files[i]);
+            if (res != NEOCFS_RESULT_CODE_SUCCESS)
+            {
+                printf("Open failed.");
+                return -1;
+            }
+            else
+            {
+                printf("File opened.");
+            }
+
+            if (currwr < (len/2))
+            {
+                wrlen = (rand() + 10000) / neocfs_files[i].u32RecordSize;
+                rdlen = (rand()) / neocfs_files[i].u32RecordSize;
+            }
+            else
+            {
+                wrlen = (rand()) / neocfs_files[i].u32RecordSize;
+                rdlen = (rand() + 20000) / neocfs_files[i].u32RecordSize;
+            }
+            printf("BEFORE: currwr %d, currrd %d, Write %d, read %d\n",currwr,currrd,wrlen,rdlen);
+
+            while ((currwr < len) && (wrlen > 0) &&
+                   (NEOCFS_RESULT_CODE_SUCCESS == NEOCFS_WriteRecord(neocfs_files+i,infile + (currwr * neocfs_files[i].u32RecordSize))))
+            {
+                currwr++;
+                wrlen--;
+            }
+            while (((rdlen > 0)) && (currrd < len) &&
+                   NEOCFS_ReadRecord(neocfs_files+i,outfile + (currrd * neocfs_files[i].u32RecordSize)))
+            {
+                NEOCFS_MarkObsolete(neocfs_files + i);
+                NEOCFS_NextRecord(neocfs_files + i);
+                if (memcmp(infile + (currrd * neocfs_files[i].u32RecordSize),
+                           outfile + (currrd * neocfs_files[i].u32RecordSize),
+                           neocfs_files[i].u32RecordSize) != 0)
+                {
+                    printf("Read failed at currrd = %d\n",currrd);
+                    return -1;
+                }
+                rdlen--;
+                currrd++;
+            }
+            printf("AFTER : currwr %d, currrd %d, Write %d, read %d\n",currwr,currrd,wrlen,rdlen);
+            NEOCFS_CloseFile(neocfs_files+i);
+        }
+
     }
 
     return 0;
 }
 
-int main()
+int main(int argc, char** argv)
 {
-    //init();
-    //test_mfs();
+    int i;
 
-    test_neocfs();
+    printf("Neo Systems file tester\n");
+
+    for (i=0; i<argc; i++)
+    {
+        if (strcmp(argv[i],"neofs") == 0)
+        {
+            printf("Testing neofs\n");
+            init();
+            if (test_mfs() != 0)
+            {
+                printf("neofs test failed\n");
+            }
+            else
+            {
+                printf("neofs test passed\n");
+            }
+        }
+        if (strcmp(argv[i],"neocfs") == 0)
+        {
+            printf("Testing neocfs\n");
+            if (test_neocfs() != 0)
+            {
+                printf("neocfs test failed\n");
+            }
+            else
+            {
+                printf("neocfs test passed\n");
+            }
+        }
+    }
+
+    printf("Done.\n");
 
     return 0;
 }

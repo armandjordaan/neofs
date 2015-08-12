@@ -22,10 +22,29 @@ Each record is constrcuted as follow:
 
 extern bool NEOCFS_Debug;
 
+/**
+ *   Total number of sectors:
+ */
 #define NEOCFS_SECTOR_COUNT           (512)
+
+/**
+ *   Number of bytes per sector
+ */
 #define NEOCFS_SECTOR_SIZE            (4096)
+
+/**
+ *   Pages size to be used by file system
+ */
 #define NEOCFS_PAGE_SIZE              (128)
+
+/**
+ *   Number of pages per sector
+ */
 #define NEOCFS_NUM_PAGES_PER_SECTOR   (NEOFS_SECTOR_SIZE / NEOFS_PAGE_SIZE)
+
+/**
+ *   Start sector
+ */
 #define NEOCFS_START_SECTOR           (0)
 
 #define NEOCFS_FILENAME_LEN (16)
@@ -82,5 +101,10 @@ void NEOCFS_Init(void);
 void NEOCFS_Dir(void);
 int NEOCFS_OpenByDescriptor(NEOCFS_FILE_DESCRIPTOR_ST* fd);
 int NEOCFS_Format(void);
+int NEOCFS_MarkObsolete(NEOCFS_FILE_DESCRIPTOR_ST* fd);
+int NEOCFS_WriteRecord(NEOCFS_FILE_DESCRIPTOR_ST* fd, void* data);
+int NEOCFS_ReadRecord(NEOCFS_FILE_DESCRIPTOR_ST* fd, void* data);
+int NEOCFS_NextRecord(NEOCFS_FILE_DESCRIPTOR_ST* fd);
+void NEOCFS_CloseFile(NEOCFS_FILE_DESCRIPTOR_ST* fd);
 
 #endif // NEOCIRCFS_H_INCLUDED
