@@ -16,7 +16,7 @@ static bool    NEOCFS_Initialised = false;
 
 #define DEBUG 1
 #if DEBUG
-char debugstr[128];
+char debugstr[1024];
 #define DPRINTF(...)  \
     if (NEOCFS_Debug) \
     { \
@@ -415,7 +415,9 @@ int NEOCFS_OpenByDescriptor(NEOCFS_FILE_DESCRIPTOR_ST* fd)
  */
 void NEOCFS_CloseFile(NEOCFS_FILE_DESCRIPTOR_ST* fd)
 {
-
+    fd->u32CurReadPos = 0;
+    fd->u32Head = 0;
+    fd->u32Tail = 0;
 }
 
 /** \brief static int GarbageCollect(NEOCFS_FILE_DESCRIPTOR_ST* fd)
@@ -484,9 +486,10 @@ static int GarbageCollect(NEOCFS_FILE_DESCRIPTOR_ST* fd)
 int NEOCFS_WriteRecord(NEOCFS_FILE_DESCRIPTOR_ST* fd, void* data)
 {
     int result;
-    uint8_t u8Temp;
-    uint8_t u8StartTag = NEOCFS_START_TAG_WRITE_STARTED;
-    uint8_t u8EndTag   = NEOCFS_END_TAG_WRITE_DONE;
+    uint8_t  u8Temp;
+    uint8_t  u8StartTag = NEOCFS_START_TAG_WRITE_STARTED;
+    uint8_t  u8EndTag   = NEOCFS_END_TAG_WRITE_DONE;
+    uint32_t u32Temp;
 
     NEOCFS_Diskread(&u8Temp,sizeof(u8Temp),fd->u32Head);
     if (u8Temp != 0xFF)
@@ -496,6 +499,19 @@ int NEOCFS_WriteRecord(NEOCFS_FILE_DESCRIPTOR_ST* fd, void* data)
 
         // if we cannot claim space in the file, then return error
         if (result != NEOCFS_RESULT_CODE_SUCCESS) return result;
+    }
+
+    /* first chec to see that we are leaving enough space between the header and the tail */
+    u32Temp = (fd->u32Head & NEOCFS_SECTOR_MASK) + (NEOCFS_SECTOR_SIZE * 2);
+    DPRINTF("Write record H:%08X T:%08X Temp:%08X\n",fd->u32Head,fd->u32Tail,u32Temp);
+    if (u32Temp > fd->u32EndAddr)
+    {
+        u32Temp = fd->u32StartAddr;
+    }
+    if ((fd->u32Tail & NEOCFS_SECTOR_MASK) == u32Temp)
+    {
+        DPRINTF("Log is full T:%08X Temp:%08X\n",fd->u32Tail,u32Temp);
+        return NEOCFS_RESULT_CODE_LOG_FULL;
     }
 
     // write the record to the circular file
@@ -509,8 +525,10 @@ int NEOCFS_WriteRecord(NEOCFS_FILE_DESCRIPTOR_ST* fd, void* data)
     // check if this is the end of the circ file ....
     if (fd->u32Head >= fd->u32EndAddr)
     {
+        DPRINTF("Write wrap around before H:%08X E:%08X\n",fd->u32Head,fd->u32EndAddr);
         // we are at the end - wrap to start again
         fd->u32Head = fd->u32StartAddr;
+        DPRINTF("Write wrap around after H:%08X S:%08X\n",fd->u32Head,fd->u32StartAddr);
     }
 
     return NEOCFS_RESULT_CODE_SUCCESS;
@@ -551,14 +569,29 @@ int NEOCFS_SeekFromTail(NEOCFS_FILE_DESCRIPTOR_ST* fd, uint32_t pos)
  */
 int NEOCFS_ReadRecord(NEOCFS_FILE_DESCRIPTOR_ST* fd, void* data)
 {
-    if (NEOCFS_Diskread(data,fd->u32RecordSize,fd->u32CurReadPos+1) == 0)
+    uint8_t u8Temp;
+
+    NEOCFS_Diskread(&u8Temp,sizeof(u8Temp),fd->u32CurReadPos);
+
+    if (u8Temp == 0xFF)
     {
-        return NEOCFS_RESULT_CODE_SUCCESS;
+        DPRINTF("Record is empty\n");
+        // end of log reached
+        return NEOCFS_RESULT_CODE_LOG_EMPTY;
     }
     else
     {
-        return NEOCFS_RESULT_CODE_GENERR;
+        DPRINTF("Record contains data\n");
+        if (NEOCFS_Diskread(data,fd->u32RecordSize,fd->u32CurReadPos+1) == fd->u32RecordSize)
+        {
+            return NEOCFS_RESULT_CODE_SUCCESS;
+        }
+        else
+        {
+            return NEOCFS_RESULT_CODE_GENERR;
+        }
     }
+
 }
 
 /** \brief int NEOCFS_NextRecord(NEOCFS_FILE_DESCRIPTOR_ST* fd)
@@ -590,7 +623,7 @@ int NEOCFS_MarkObsolete(NEOCFS_FILE_DESCRIPTOR_ST* fd)
 {
     uint8_t u8Tag;
 
-    DPRINTF("fd->u32CurReadPos = %d, fd->u32Tail = %d\n",fd->u32CurReadPos,fd->u32Tail);
+    DPRINTF("fd->u32CurReadPos = %08X, fd->u32Tail = %08X\n",fd->u32CurReadPos,fd->u32Tail);
     if (fd->u32CurReadPos == fd->u32Tail)
     {
         //NEOCFS_Diskread(&u8Tag,sizeof(u8Tag),fd->u32Tail+fd->u32RecordSize+1);

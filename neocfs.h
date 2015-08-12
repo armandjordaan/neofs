@@ -32,6 +32,7 @@ extern bool NEOCFS_Debug;
  */
 #define NEOCFS_SECTOR_SIZE            (4096)
 
+
 /**
  *   Pages size to be used by file system
  */
@@ -41,6 +42,11 @@ extern bool NEOCFS_Debug;
  *   Number of pages per sector
  */
 #define NEOCFS_NUM_PAGES_PER_SECTOR   (NEOFS_SECTOR_SIZE / NEOFS_PAGE_SIZE)
+
+/**
+ *   Number of bytes per sector
+ */
+#define NEOCFS_SECTOR_MASK            (0xFFFFFFFFul - (NEOCFS_SECTOR_SIZE-1))
 
 /**
  *   Start sector
@@ -57,10 +63,12 @@ extern bool NEOCFS_Debug;
 
 typedef enum
 {
-    NEOCFS_RESULT_CODE_SUCCESS   = 0,
-    NEOCFS_RESULT_CODE_NO_INIT   = -1,
-    NEOCFS_RESULT_CODE_GENERR    = -2,
-    NEOCFS_RESULT_CODE_DISK_FAIL = -3
+    NEOCFS_RESULT_CODE_SUCCESS    = 0,
+    NEOCFS_RESULT_CODE_NO_INIT    = -1,
+    NEOCFS_RESULT_CODE_GENERR     = -2,
+    NEOCFS_RESULT_CODE_DISK_FAIL  = -3,
+    NEOCFS_RESULT_CODE_LOG_FULL   = -4,
+    NEOCFS_RESULT_CODE_LOG_EMPTY  = -5
 } NEOCFS_RESULT_CODE_EN;
 
 typedef enum

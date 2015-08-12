@@ -12,7 +12,7 @@ uint8_t FlashBuffer[4096*2048];
 // ****************************************************************************
 extern bool           NEOFS_Debug;
 
-#define MAX_TEST_FILE_SIZE (1024*1024)
+#define MAX_TEST_FILE_SIZE (4096*2048)
 #define MAX_NUM_TEST_FILES (100)
 
 uint8_t infile[MAX_TEST_FILE_SIZE];
@@ -73,14 +73,17 @@ char noun[20][30] = {
 // ****************************************************************************
 // NEOCFS debugging
 // ****************************************************************************
-#define NUM_NEOCFS_FILES (3)
+#define NUM_NEOCFS_FILES (6)
 //NEOCFS_DECLARE_CIRC_FILE("Log1",30, 0x00000000,0x0000FFFF);
 //NEOCFS_DECLARE_CIRC_FILE("Log2",62, 0x00010000,0x00017FFF);
 //NEOCFS_DECLARE_CIRC_FILE("Log3",126,0x00018000,0x0001FFFF);
 NEOCFS_FILE_DESCRIPTOR_ST neocfs_files[NUM_NEOCFS_FILES] = {
-    { "Log1",30, 0x00000000,0x0000FFFF },
-    { "Log2",62, 0x00010000,0x00017FFF },
-    { "Log3",126,0x00018000,0x0001FFFF }
+    { "Log1",30,  0x00000000,0x0000FFFF },
+    { "Log2",62,  0x00010000,0x00017FFF },
+    { "Log3",126, 0x00018000,0x0001FFFF },
+    { "Log4",14,  0x00020000,0x0003FFFF },
+    { "Log5",4094,0x00040000,0x0004FFFF },
+    { "Log6",254, 0x00050000,0x0007FFFF }
 };
 
 uint8_t neocfs_test_data[1024];
@@ -375,15 +378,16 @@ int test_neocfs(void)
 
         while((currwr < len) || (currrd < len))
         {
+            printf("Opening file:%s\n",neocfs_files[i].cFilename);
             res = NEOCFS_OpenByDescriptor(&neocfs_files[i]);
             if (res != NEOCFS_RESULT_CODE_SUCCESS)
             {
-                printf("Open failed.");
+                printf("Open failed\n");
                 return -1;
             }
             else
             {
-                printf("File opened.");
+                printf("File opened\n");
             }
 
             if (currwr < (len/2))
@@ -405,7 +409,7 @@ int test_neocfs(void)
                 wrlen--;
             }
             while (((rdlen > 0)) && (currrd < len) &&
-                   NEOCFS_ReadRecord(neocfs_files+i,outfile + (currrd * neocfs_files[i].u32RecordSize)))
+                   (NEOCFS_ReadRecord(neocfs_files+i,outfile + (currrd * neocfs_files[i].u32RecordSize)) == NEOCFS_RESULT_CODE_SUCCESS))
             {
                 NEOCFS_MarkObsolete(neocfs_files + i);
                 NEOCFS_NextRecord(neocfs_files + i);
